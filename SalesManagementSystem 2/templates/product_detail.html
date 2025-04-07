@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if is_new %}
+Aggiungi Prodotto - Sistema di Gestione Ordini
+{% else %}
+{{ product.name }} - Dettagli Prodotto
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-box me-2"></i>
+        {% if is_new %}
+        Aggiungi Nuovo Prodotto
+        {% else %}
+        {{ product.name }}
+        {% endif %}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        {% if not is_new and not is_edit and role == 'admin' %}
+        <a href="{{ url_for('product_edit', product_id=product.id) }}" class="btn btn-warning me-2">
+            <i class="fas fa-edit me-1"></i> Modifica
+        </a>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteProductModal">
+            <i class="fas fa-trash me-1"></i> Elimina
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+{% if is_new or is_edit %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        {% if is_new %}
+        <h5 class="mb-0">Informazioni Nuovo Prodotto</h5>
+        {% else %}
+        <h5 class="mb-0">Modifica Product Information</h5>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{% if is_new %}{{ url_for('product_new') }}{% else %}{{ url_for('product_edit', product_id=product.id) }}{% endif %}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="name" class="form-label">Nome Prodotto</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ product.name if product else '' }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="code" class="form-label">Codice Prodotto</label>
+                    <input type="text" class="form-control" id="code" name="code" value="{{ product.code if product else '' }}" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label for="description" class="form-label">Descrizione</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ product.description if product else '' }}</textarea>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="price" class="form-label">Prezzo</label>
+                    <div class="input-group">
+                        <span class="input-group-text">€</span>
+                        <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" value="{{ product.price if product else '' }}" required>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="unit" class="form-label">Unità</label>
+                    <select class="form-select" id="unit" name="unit" required>
+                        <option value="">Seleziona unità...</option>
+                        <option value="piece" {% if product and product.unit == 'piece' %}selected{% endif %}>Pezzo</option>
+                        <option value="kg" {% if product and product.unit == 'kg' %}selected{% endif %}>Chilogrammo</option>
+                        <option value="liter" {% if product and product.unit == 'liter' %}selected{% endif %}>Litro</option>
+                        <option value="meter" {% if product and product.unit == 'meter' %}selected{% endif %}>Metro</option>
+                        <option value="box" {% if product and product.unit == 'box' %}selected{% endif %}>Scatola</option>
+                        <option value="pack" {% if product and product.unit == 'pack' %}selected{% endif %}>Confezione</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="category" class="form-label">Categoria</label>
+                    <select class="form-select" id="category" name="category">
+                        <option value="">Seleziona categoria...</option>
+                        <option value="Mobili" {% if product and product.category == 'Furniture' %}selected{% endif %}>Furniture</option>
+                        <option value="Tecnologia" {% if product and product.category == 'Technology' %}selected{% endif %}>Technology</option>
+                        <option value="Forniture per Ufficio" {% if product and product.category == 'Office Supplies' %}selected{% endif %}>Office Supplies</option>
+                        <option value="Elettronica" {% if product and product.category == 'Electronics' %}selected{% endif %}>Electronics</option>
+                        <option value="Altro" {% if product and product.category == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{% if is_new %}{{ url_for('products_list') }}{% else %}{{ url_for('product_detail', product_id=product.id) }}{% endif %}" class="btn btn-secondary me-md-2">Annulla</a>
+                <button type="submit" class="btn btn-primary">
+                    {% if is_new %}
+                    <i class="fas fa-plus me-1"></i> Aggiungi Prodotto
+                    {% else %}
+                    <i class="fas fa-save me-1"></i> Salva Modifiche
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% elif product %}
+<!-- Product Details -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Nome Prodotto:</div>
+                    <div class="col-md-8">{{ product.name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Codice Prodotto:</div>
+                    <div class="col-md-8">{{ product.code }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Prezzo:</div>
+                    <div class="col-md-8">{{ product.price|currency }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Unità:</div>
+                    <div class="col-md-8">{{ product.unit|capitalize }}</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Categoria:</div>
+                    <div class="col-md-8">{{ product.category or 'Non Categorizzato' }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Creato:</div>
+                    <div class="col-md-8">{{ product.created_at|format_date }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 fw-bold">Descrizione:</div>
+                    <div class="col-md-8">{{ product.description or 'Nessuna descrizione disponibile' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Elimina Confirmation Modal -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-labelledby="deleteProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteProductModalLabel">Confirm Elimina</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Sei sicuro di voler eliminare il prodotto <strong>{{ product.name }}</strong></strong>? Questa azione non può essere annullata.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('product_delete', product_id=product.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Elimina</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

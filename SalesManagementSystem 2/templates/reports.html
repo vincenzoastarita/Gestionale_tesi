@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports - Sales Order Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-chart-bar me-2"></i> Reports</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="printReportBtn">
+                <i class="fas fa-print me-1"></i> Print
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="exportReportBtn">
+                <i class="fas fa-download me-1"></i> Export
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Sales Chart -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Monthly Sales Overview</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Commission Summary -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Commission Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for commission in user_commissions %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ commission.name }}</h6>
+                            <small class="text-muted">{{ commission.role|capitalize }}</small>
+                        </div>
+                        <p class="mb-1">Sales: {{ commission.total_sales|currency }}</p>
+                        <p class="mb-0">Commission: {{ commission.total_commission|currency }}</p>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                style="width: {{ (commission.total_commission / commission.total_sales * 100) if commission.total_sales > 0 else 0 }}%;" 
+                                aria-valuenow="{{ (commission.total_commission / commission.total_sales * 100) if commission.total_sales > 0 else 0 }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item">
+                        <p class="mb-0 text-center">No commission data available.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales by Category -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Sales by Category</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sales by Status -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Orders by Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Commission Reports -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Detailed Commission Report</h5>
+        <div>
+            <select class="form-select form-select-sm" id="reportPeriodSelect">
+                <option value="month">This Month</option>
+                <option value="quarter">This Quarter</option>
+                <option value="year">This Year</option>
+                <option value="custom">Custom Range</option>
+            </select>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Orders</th>
+                        <th>Sales</th>
+                        <th>Commission Rate</th>
+                        <th>Commission</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for commission in user_commissions %}
+                    <tr>
+                        <td>{{ commission.name }}</td>
+                        <td>{{ commission.role|capitalize }}</td>
+                        <td>{{ commission.orders|default(0) }}</td>
+                        <td>{{ commission.total_sales|currency }}</td>
+                        <td>{{ ((commission.total_commission / commission.total_sales * 100) if commission.total_sales > 0 else 0)|round(2) }}%</td>
+                        <td>{{ commission.total_commission|currency }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No commission data available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="3">Total</td>
+                        <td>{{ user_commissions|sum(attribute='total_sales')|currency }}</td>
+                        <td></td>
+                        <td>{{ user_commissions|sum(attribute='total_commission')|currency }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly sales data
+        const salesData = {{ sales_data|tojson }};
+        
+        // Initialize sales chart
+        const salesChartCtx = document.getElementById('salesChart').getContext('2d');
+        const salesChart = new Chart(salesChartCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Monthly Sales',
+                    data: salesData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Sales: €' + context.raw.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Sample data for category chart - in a real app, this would come from the server
+        const categoryChartCtx = document.getElementById('categoryChart').getContext('2d');
+        const categoryChart = new Chart(categoryChartCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Furniture', 'Technology', 'Office Supplies', 'Electronics', 'Other'],
+                datasets: [{
+                    data: [30, 25, 20, 15, 10],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${percentage}% (€${value.toLocaleString()})`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Sample data for status chart - in a real app, this would come from the server
+        const statusChartCtx = document.getElementById('statusChart').getContext('2d');
+        const statusChart = new Chart(statusChartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'],
+                datasets: [{
+                    data: [15, 20, 25, 35, 5],
+                    backgroundColor: [
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(220, 53, 69, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${percentage}% (${value} orders)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Print report button
+        document.getElementById('printReportBtn').addEventListener('click', function() {
+            window.print();
+        });
+        
+        // Export report button (simplified - would need server-side processing for real export)
+        document.getElementById('exportReportBtn').addEventListener('click', function() {
+            alert('Export functionality would be implemented here');
+        });
+    });
+</script>
+{% endblock %}

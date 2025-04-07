@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Sistema di Gestione Ordini{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('orders_list') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-list me-1"></i> Tutti gli Ordini
+            </a>
+            <a href="{{ url_for('reports') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-chart-bar me-1"></i> Report
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Stats overview -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Ordini Mensili</h6>
+                        <h2 class="mb-0">{{ orders_count }}</h2>
+                    </div>
+                    <i class="fas fa-file-invoice fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('orders_list') }}" class="text-white text-decoration-none small">Vedi Ordini</a>
+                <i class="fas fa-angle-right"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Vendite Mensili</h6>
+                        <h2 class="mb-0">{{ total_sales|currency }}</h2>
+                    </div>
+                    <i class="fas fa-euro-sign fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('reports') }}" class="text-white text-decoration-none small">View Report</a>
+                <i class="fas fa-angle-right"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Clienti</h6>
+                        <h2 class="mb-0">{{ customers_count }}</h2>
+                    </div>
+                    <i class="fas fa-users fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('customers_list') }}" class="text-white text-decoration-none small">View Clienti</a>
+                <i class="fas fa-angle-right"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-secondary h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Provvigioni</h6>
+                        <h2 class="mb-0">{{ commission_info.total_commission|currency }}</h2>
+                    </div>
+                    <i class="fas fa-hand-holding-usd fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('reports') }}" class="text-white text-decoration-none small">View Provvigioni</a>
+                <i class="fas fa-angle-right"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Sales Chart -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Vendite Mensili Overview</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ordini Recenti -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Ordini Recenti</h5>
+                <a href="{{ url_for('orders_list') }}" class="btn btn-sm btn-primary">
+                    Vedi Tutti
+                </a>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for order in recent_orders %}
+                <a href="{{ url_for('order_detail', order_id=order.id) }}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">{{ order.customer_name }}</h6>
+                        <span class="badge rounded-pill 
+                            {% if order.status == 'pending' %}bg-warning{% elif order.status == 'confirmed' %}bg-info
+                            {% elif order.status == 'shipped' %}bg-primary{% elif order.status == 'delivered' %}bg-success
+                            {% else %}bg-danger{% endif %}">
+                            {{ order.status|capitalize }}
+                        </span>
+                    </div>
+                    <p class="mb-1 small">Ordine #{{ order.id }} - {{ order.total_amount|currency }}</p>
+                    <small>{{ order.order_date|format_date }}</small>
+                </a>
+                {% else %}
+                <div class="list-group-item">Nessun ordine recente trovato.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly sales data
+        const salesData = {{ sales_data|tojson }};
+        
+        // Initialize sales chart
+        const salesChartCtx = document.getElementById('salesChart').getContext('2d');
+        const salesChart = new Chart(salesChartCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Vendite Mensili',
+                    data: salesData,
+                    backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Sales: €' + context.raw.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

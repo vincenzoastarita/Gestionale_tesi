@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Sistema di Gestione Ordini - Benvenuto{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 my-5 text-center">
+    <h1 class="display-5 fw-bold">Sistema di Gestione Ordini</h1>
+    <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">
+            Una soluzione completa per agenti commerciali e loro collaboratori, 
+            con gestione clienti, tracciamento ordini e report provvigioni.
+        </p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-4 gap-3">
+                <i class="fas fa-sign-in-alt me-2"></i> Accedi
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+        <div class="col d-flex align-items-start">
+            <div class="icon-square bg-light text-dark flex-shrink-0 me-3">
+                <i class="fas fa-users fa-2x"></i>
+            </div>
+            <div>
+                <h2>Gestione Clienti</h2>
+                <p>Gestisci in modo efficiente le informazioni dei clienti, inclusi dettagli di contatto, cronologia ordini e listini personalizzati.</p>
+            </div>
+        </div>
+        <div class="col d-flex align-items-start">
+            <div class="icon-square bg-light text-dark flex-shrink-0 me-3">
+                <i class="fas fa-file-invoice fa-2x"></i>
+            </div>
+            <div>
+                <h2>Tracciamento Ordini</h2>
+                <p>Crea e monitora ordini, gestisci lo stato degli ordini ed elabora i pagamenti in un'interfaccia intuitiva.</p>
+            </div>
+        </div>
+        <div class="col d-flex align-items-start">
+            <div class="icon-square bg-light text-dark flex-shrink-0 me-3">
+                <i class="fas fa-chart-line fa-2x"></i>
+            </div>
+            <div>
+                <h2>Report Provvigioni</h2>
+                <p>Genera report dettagliati sulle provvigioni basati sui risultati di vendita, con permessi controllati per ruolo utente.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

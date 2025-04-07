@@ -1,0 +1,206 @@
+/**
+ * Main JavaScript file for the Sales Order Management System
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    
+    // Initialize Bootstrap popovers
+    const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+    const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl));
+    
+    // Auto-hide flash messages after 5 seconds
+    const flashMessages = document.querySelectorAll('.alert');
+    flashMessages.forEach(message => {
+        setTimeout(() => {
+            const alert = new bootstrap.Alert(message);
+            alert.close();
+        }, 5000);
+    });
+    
+    // Add event listener for customer selection in new order form
+    const customerSelect = document.getElementById('customer_id');
+    if (customerSelect) {
+        customerSelect.addEventListener('change', function() {
+            const customerId = this.value;
+            const priceListSection = document.getElementById('customer-price-list-section');
+            
+            if (customerId) {
+                // Mostra la sezione del listino prezzi
+                if (priceListSection) {
+                    priceListSection.style.display = 'block';
+                }
+                
+                // Carica il listino prezzi per questo cliente
+                fetch(`/api/customers/${customerId}/price-list`)
+                    .then(response => response.json())
+                    .then(products => {
+                        populateCustomerPriceList(products);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching price list:', error);
+                        if (priceListSection) {
+                            const tableBody = document.querySelector('#customer-products-table tbody');
+                            if (tableBody) {
+                                tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Errore durante il caricamento del listino prezzi</td></tr>';
+                            }
+                        }
+                    });
+            } else {
+                // Nascondi la sezione del listino prezzi se nessun cliente è selezionato
+                if (priceListSection) {
+                    priceListSection.style.display = 'none';
+                }
+            }
+        });
+    }
+    
+    // Filtra la tabella dei prodotti in base alla ricerca
+    const productSearch = document.getElementById('product-search');
+    if (productSearch) {
+        productSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const tableRows = document.querySelectorAll('#customer-products-table tbody tr');
+            
+            tableRows.forEach(row => {
+                if (row.cells.length > 1) { // Verifica che la riga abbia celle (non è la riga di messaggio)
+                    const productCode = row.cells[0].textContent.toLowerCase();
+                    const productName = row.cells[1].textContent.toLowerCase();
+                    const shouldShow = productCode.includes(searchTerm) || productName.includes(searchTerm);
+                    row.style.display = shouldShow ? '' : 'none';
+                }
+            });
+        });
+    }
+    
+    // Add event listener for product price lookup
+    const productSelects = document.querySelectorAll('select[id^="modal_product_id"]');
+    productSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            const productId = this.value;
+            const customerId = document.getElementById('customer_id')?.value;
+            
+            if (productId && customerId) {
+                // Fetch custom price for this customer and product
+                fetch(`/api/customers/${customerId}/price/${productId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.price) {
+                            const priceInput = document.getElementById('modal_price');
+                            if (priceInput) {
+                                priceInput.value = data.price;
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Error fetching price:', error));
+            }
+        });
+    });
+    
+    // Handle sidebar toggling on mobile
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            document.body.classList.toggle('sidebar-toggled');
+            document.querySelector('.sidebar').classList.toggle('toggled');
+        });
+    }
+    
+    // Format number inputs as currency
+    const currencyInputs = document.querySelectorAll('input[type="number"][step="0.01"]');
+    currencyInputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.value) {
+                this.value = parseFloat(this.value).toFixed(2);
+            }
+        });
+    });
+    
+    // Confirm delete actions
+    const deleteButtons = document.querySelectorAll('[data-confirm="true"]');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // Filter tables
+    const tableFilters = document.querySelectorAll('.table-filter');
+    tableFilters.forEach(filter => {
+        filter.addEventListener('input', function() {
+            const tableId = this.getAttribute('data-table');
+            const table = document.getElementById(tableId);
+            if (table) {
+                const value = this.value.toLowerCase();
+                const rows = table.querySelectorAll('tbody tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.indexOf(value) > -1 ? '' : 'none';
+                });
+            }
+        });
+    });
+});
+
+/**
+ * Format a number as currency
+ * @param {number} value - The value to format
+ * @param {string} locale - The locale to use for formatting (default: en-US)
+ * @param {string} currency - The currency code (default: EUR)
+ * @returns {string} Formatted currency string
+ */
+function formatCurrency(value, locale = 'en-US', currency = 'EUR') {
+    return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: currency
+    }).format(value);
+}
+
+/**
+ * Format a date as a string
+ * @param {Date|string} date - The date to format
+ * @param {string} locale - The locale to use for formatting (default: en-US)
+ * @returns {string} Formatted date string
+ */
+function formatDate(date, locale = 'en-US') {
+    if (typeof date === 'string') {
+        date = new Date(date);
+    }
+    
+    return new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(date);
+}
+
+/**
+ * Calculate the total for an order
+ * @param {Array} items - Array of order items with price and quantity
+ * @returns {number} Total amount
+ */
+function calculateOrderTotal(items) {
+    return items.reduce((total, item) => {
+        return total + (item.price * item.quantity);
+    }, 0);
+}
+
+/**
+ * Toggle visibility of an element
+ * @param {string} elementId - The ID of the element to toggle
+ */
+function toggleElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        if (element.style.display === 'none') {
+            element.style.display = '';
+        } else {
+            element.style.display = 'none';
+        }
+    }
+}

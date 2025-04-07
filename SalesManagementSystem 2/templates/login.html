@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Accedi - Sistema di Gestione Ordini{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0 text-center">Accedi</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('login') }}" autocomplete="off">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label for="{{ form.username.id }}" class="form-label">Nome Utente</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            {{ form.username(class="form-control", autocapitalize="none", autocomplete="username", autofocus=True) }}
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="{{ form.password.id }}" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            {{ form.password(class="form-control", autocomplete="current-password") }}
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i> Accedi
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <p class="mb-0">Account di prova:</p>
+                <p class="mb-0 small">
+                    admin / admin123 (Amministratore)<br>
+                    agent1 / agent123 (Agente)<br>
+                    collab1 / collab123 (Collaboratore)
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,554 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if is_new %}
+Nuovo Ordine - Sistema di Gestione Ordini
+{% else %}
+Ordine {{ order.order_code }} - Sistema di Gestione Ordini
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-file-invoice me-2"></i>
+        {% if is_new %}
+        Nuovo Ordine
+        {% else %}
+        Ordine {{ order.order_code }}
+        {% endif %}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        {% if not is_new and not is_edit %}
+        <a href="{{ url_for('order_edit', order_id=order.id) }}" class="btn btn-warning me-2">
+            <i class="fas fa-edit me-1"></i> Modifica
+        </a>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteOrderModal">
+            <i class="fas fa-trash me-1"></i> Elimina
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+{% if is_new %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Nuovo Ordine</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('order_new') }}" id="newOrderForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="customer_id" class="form-label">Cliente</label>
+                    <select class="form-select" id="customer_id" name="customer_id" required>
+                        <option value="">Seleziona un cliente...</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}">{{ customer.name }} ({{ customer.vat_number }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="status" class="form-label">Stato</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="pending">In Attesa</option>
+                        <option value="confirmed">Confermato</option>
+                        <option value="shipped">Spedito</option>
+                        <option value="delivered">Consegnato</option>
+                        <option value="cancelled">Annullato</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="notes" class="form-label">Note</label>
+                <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+            </div>
+            
+            <!-- Sezione Listino Prezzi Cliente - inizialmente nascosta -->
+            <div id="customer-price-list-section" class="card mb-4" style="display: none;">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Listino Prezzi Cliente</h5>
+                        <div class="input-group" style="max-width: 300px;">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="product-search" placeholder="Cerca prodotto...">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="customer-products-table">
+                            <thead>
+                                <tr>
+                                    <th>Codice</th>
+                                    <th>Prodotto</th>
+                                    <th>Prezzo</th>
+                                    <th>Quantità</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Il listino prodotti verrà caricato dinamicamente qui -->
+                                <tr>
+                                    <td colspan="5" class="text-center">Seleziona un cliente per visualizzare il listino prezzi</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <h5 class="mb-3">Articoli Ordine</h5>
+            <div class="table-responsive mb-3">
+                <table class="table table-striped" id="orderItemsTable">
+                    <thead>
+                        <tr>
+                            <th>Prodotto</th>
+                            <th>Prezzo</th>
+                            <th>Quantità</th>
+                            <th>Tasso di Commissione</th>
+                            <th>Totale</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Items will be added dynamically via JavaScript -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">Totale:</td>
+                            <td class="fw-bold" id="orderTotale">€0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="mb-3">
+                <button type="button" class="btn btn-success" id="addItemBtn">
+                    <i class="fas fa-plus me-1"></i> Aggiungi Articolo
+                </button>
+            </div>
+            
+            <input type="hidden" id="item_count" name="item_count" value="0">
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('orders_list') }}" class="btn btn-secondary me-md-2">Annulla</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Crea Ordine
+                </button>
+            </div>
+        </form>
+        
+        <!-- Aggiungi Articolo Modal -->
+        <div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addItemModalLabel">Aggiungi Articolo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="modal_product_id" class="form-label">Prodotto</label>
+                            <select class="form-select" id="modal_product_id">
+                                <option value="">Seleziona un prodotto...</option>
+                                {% for product in products %}
+                                <option value="{{ product.id }}" data-price="{{ product.price }}">{{ product.name }} ({{ product.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modal_price" class="form-label">Prezzo</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input type="number" class="form-control" id="modal_price" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modal_quantity" class="form-label">Quantità</label>
+                            <input type="number" class="form-control" id="modal_quantity" value="1" min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="modal_commission_rate" class="form-label">Tasso di Commissionee (%)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="modal_commission_rate" value="5" min="0" max="100" step="0.1">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="button" class="btn btn-primary" id="confirmAddItemBtn">Aggiungi Articolo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% elif is_edit %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">Modifica Order</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('order_edit', order_id=order.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Cliente</label>
+                    <input type="text" class="form-control" value="{{ order.customer_name }}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label for="status" class="form-label">Stato</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>In Attesa</option>
+                        <option value="confirmed" {% if order.status == 'confirmed' %}selected{% endif %}>Confermato</option>
+                        <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>Spedito</option>
+                        <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Consegnato</option>
+                        <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>Annullato</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="notes" class="form-label">Note</label>
+                <textarea class="form-control" id="notes" name="notes" rows="2">{{ order.notes }}</textarea>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('order_detail', order_id=order.id) }}" class="btn btn-secondary me-md-2">Annulla</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Salva Modifiche
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% elif order %}
+<!-- Order Details -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Informazioni Ordine</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Codice Ordine:</div>
+                    <div class="col-md-8">{{ order.order_code }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Numero Ordine:</div>
+                    <div class="col-md-8">{{ order.id }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Data:</div>
+                    <div class="col-md-8">{{ order.order_date|format_date }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Cliente:</div>
+                    <div class="col-md-8">{{ order.customer_name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Stato:</div>
+                    <div class="col-md-8">
+                        <span class="badge rounded-pill 
+                            {% if order.status == 'pending' %}bg-warning{% elif order.status == 'confirmed' %}bg-info
+                            {% elif order.status == 'shipped' %}bg-primary{% elif order.status == 'delivered' %}bg-success
+                            {% else %}bg-danger{% endif %}">
+                            {{ order.status|capitalize }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Creato Da:</div>
+                    <div class="col-md-8">{{ order.created_by }}</div>
+                </div>
+                {% if order.notes %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Note:</div>
+                    <div class="col-md-8">{{ order.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Riepilogo Pagamenti</h5>
+                <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+                    <i class="fas fa-plus me-1"></i> Aggiungi Pagamento
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Totale Importo:</div>
+                    <div class="col-md-8">{{ order.total_amount|currency }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Importo Pagato:</div>
+                    <div class="col-md-8">{{ order.paid_amount|currency }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Saldo:</div>
+                    <div class="col-md-8 {% if order.balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ order.balance|currency }}
+                    </div>
+                </div>
+                
+                {% if payments %}
+                <h6 class="mt-4 mb-2">Cronologia Pagamenti</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Importo</th>
+                                <th>Metodo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                            <tr>
+                                <td>{{ payment.payment_date|format_date }}</td>
+                                <td>{{ payment.amount|currency }}</td>
+                                <td>{{ payment.payment_method }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Articoli Ordine -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Articoli Ordine</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Prodotto</th>
+                        <th>Codice</th>
+                        <th>Prezzo</th>
+                        <th>Quantità</th>
+                        <th>Totale</th>
+                        <th>Commissione</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if order.items is defined and order.items is iterable %}
+                    {% for item in order.items %}
+                    <tr>
+                        <td>{{ item.product_name }}</td>
+                        <td>{{ item.product_code }}</td>
+                        <td>{{ item.price|currency }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.total|currency }}</td>
+                        <td>{{ item.commission_amount|currency }} ({{ item.commission_rate * 100 }}%)</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">Nessun articolo aggiunto a questo ordine</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end fw-bold">Totale:</td>
+                        <td class="fw-bold">{{ order.total_amount|currency }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Elimina Confirmation Modal -->
+<div class="modal fade" id="deleteOrderModal" tabindex="-1" aria-labelledby="deleteOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteOrderModalLabel">Confirm Elimina</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Sei sicuro di voler eliminare questo ordine? Questa azione non può essere annullata.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <a href="{{ url_for('order_delete', order_id=order.id) }}" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i> Elimina Ordine
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aggiungi Pagamento Modal -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPaymentModalLabel">Aggiungi Pagamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('order_add_payment', order_id=order.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Importo</label>
+                        <div class="input-group">
+                            <span class="input-group-text">€</span>
+                            <input type="number" class="form-control" id="amount" name="amount" value="{{ order.balance }}" step="0.01" min="0.01" max="{{ order.balance }}" required>
+                        </div>
+                        <div class="form-text">Saldo: {{ order.balance|currency }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment_method" class="form-label">Metodo di Pagamento</label>
+                        <select class="form-select" id="payment_method" name="payment_method" required>
+                            <option value="bank_transfer">Bonifico Bancario</option>
+                            <option value="credit_card">Carta di Credito</option>
+                            <option value="cash">Contanti</option>
+                            <option value="check">Assegno</option>
+                            <option value="other">Altro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Note</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Registra Pagamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if is_new %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addItemBtn = document.getElementById('addItemBtn');
+    const confirmAddItemBtn = document.getElementById('confirmAddItemBtn');
+    const orderItemsTable = document.getElementById('orderItemsTable').getElementsByTagName('tbody')[0];
+    const itemCountInput = document.getElementById('item_count');
+    const orderTotaleDiv = document.getElementById('orderTotale');
+    const formModal = new bootstrap.Modal(document.getElementById('addItemModal'));
+    
+    let itemCount = 0;
+    let orderTotal = 0;
+    
+    // Product selection changed
+    document.getElementById('modal_product_id').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const price = selectedOption.getAttribute('data-price');
+            document.getElementById('modal_price').value = price;
+        } else {
+            document.getElementById('modal_price').value = '';
+        }
+    });
+    
+    // Add Item button clicked
+    addItemBtn.addEventListener('click', function() {
+        // Reset modal fields
+        document.getElementById('modal_product_id').value = '';
+        document.getElementById('modal_price').value = '';
+        document.getElementById('modal_quantity').value = '1';
+        document.getElementById('modal_commission_rate').value = '5';
+        
+        // Show modal
+        formModal.show();
+    });
+    
+    // Confirm Add Item button clicked
+    confirmAddItemBtn.addEventListener('click', function() {
+        const productId = document.getElementById('modal_product_id').value;
+        const price = parseFloat(document.getElementById('modal_price').value);
+        const quantity = parseFloat(document.getElementById('modal_quantity').value);
+        const commissionRate = parseFloat(document.getElementById('modal_commission_rate').value) / 100;
+        
+        if (!productId || isNaN(price) || isNaN(quantity) || price <= 0 || quantity <= 0) {
+            alert('Per favore, compila tutti i campi correttamente');
+            return;
+        }
+        
+        const productSelect = document.getElementById('modal_product_id');
+        const productName = productSelect.options[productSelect.selectedIndex].text;
+        const itemTotal = price * quantity;
+        orderTotal += itemTotal;
+        
+        // Add row to table
+        const newRow = orderItemsTable.insertRow();
+        newRow.innerHTML = `
+            <td>${productName}</td>
+            <td>€${price.toFixed(2)}</td>
+            <td>${quantity}</td>
+            <td>${(commissionRate * 100).toFixed(1)}%</td>
+            <td>€${itemTotal.toFixed(2)}</td>
+            <td>
+                <button type="button" class="btn btn-sm btn-danger remove-item">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        `;
+        
+        // Add hidden fields to form
+        const formHiddenFields = `
+            <input type="hidden" name="product_id_${itemCount}" value="${productId}">
+            <input type="hidden" name="price_${itemCount}" value="${price}">
+            <input type="hidden" name="quantity_${itemCount}" value="${quantity}">
+            <input type="hidden" name="commission_rate_${itemCount}" value="${commissionRate}">
+        `;
+        document.getElementById('newOrderForm').insertAdjacentHTML('beforeend', formHiddenFields);
+        
+        // Add remove button event
+        newRow.querySelector('.remove-item').addEventListener('click', function() {
+            const rowIndex = this.parentNode.parentNode.rowIndex - 1;
+            const itemPrice = parseFloat(document.querySelector(`input[name="price_${rowIndex}"]`).value);
+            const itemQuantity = parseFloat(document.querySelector(`input[name="quantity_${rowIndex}"]`).value);
+            orderTotal -= (itemPrice * itemQuantity);
+            
+            // Remove row
+            orderItemsTable.deleteRow(this.parentNode.parentNode.rowIndex - 1);
+            
+            // Update order total
+            orderTotaleDiv.textContent = `€${orderTotal.toFixed(2)}`;
+        });
+        
+        // Update item count
+        itemCount++;
+        itemCountInput.value = itemCount;
+        
+        // Update order total
+        orderTotaleDiv.textContent = `€${orderTotal.toFixed(2)}`;
+        
+        // Close modal
+        formModal.hide();
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

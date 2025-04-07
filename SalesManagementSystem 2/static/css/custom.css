@@ -1,0 +1,326 @@
+/**
+ * Custom CSS for Sales Order Management System
+ * 
+ * This file contains minimal custom styling
+ * as we're primarily using Bootstrap for styling.
+ */
+
+/* Common utility classes */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Custom badge colors */
+.badge.bg-pending {
+    background-color: var(--bs-warning);
+}
+
+.badge.bg-confirmed {
+    background-color: var(--bs-info);
+}
+
+.badge.bg-shipped {
+    background-color: var(--bs-primary);
+}
+
+.badge.bg-delivered {
+    background-color: var(--bs-success);
+}
+
+.badge.bg-cancelled {
+    background-color: var(--bs-danger);
+}
+
+/* Print styles */
+@media print {
+    .navbar, 
+    .footer, 
+    .btn,
+    .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .card-header {
+        background-color: transparent !important;
+        border-bottom: 1px solid #ddd !important;
+        color: #000 !important;
+    }
+    
+    body {
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+    
+    .table {
+        width: 100% !important;
+        margin-bottom: 1rem !important;
+        color: #000 !important;
+        border-color: #000 !important;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.75rem !important;
+        border-top: 1px solid #000 !important;
+    }
+    
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}
+
+/* Dashboard card hover effect */
+.card:hover {
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+/* Status indicator styles */
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.status-pending {
+    background-color: var(--bs-warning);
+}
+
+.status-confirmed {
+    background-color: var(--bs-info);
+}
+
+.status-shipped {
+    background-color: var(--bs-primary);
+}
+
+.status-delivered {
+    background-color: var(--bs-success);
+}
+
+.status-cancelled {
+    background-color: var(--bs-danger);
+}
+
+/* Order items table styling */
+#orderItemsTable th,
+#orderItemsTable td {
+    vertical-align: middle;
+}
+
+/* Form field focus styling */
+.form-control:focus, 
+.form-select:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Enhanced mobile/touch interface styles */
+@media (max-width: 991.98px) {
+    /* Larger touch targets for mobile */
+    .btn, 
+    .nav-link, 
+    .dropdown-item,
+    .form-control,
+    .form-select,
+    .input-group-text {
+        padding: 0.6rem 1rem;
+        min-height: 44px; /* Apple's minimum recommended touch target size */
+    }
+    
+    /* More space between form elements */
+    .form-group,
+    .mb-3,
+    .mb-4 {
+        margin-bottom: 1.5rem !important;
+    }
+    
+    /* Larger font for better readability */
+    body {
+        font-size: 16px;
+    }
+    
+    /* More spacious tables for touch */
+    .table th,
+    .table td {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    /* Fixed header for improved scrolling experience */
+    .navbar {
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+    }
+    
+    /* More space inside cards on mobile */
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Larger dropdown menu items */
+    .dropdown-menu {
+        font-size: 1rem;
+    }
+    
+    .dropdown-item {
+        padding: 0.5rem 1.5rem;
+    }
+    
+    /* Additional form improvements for touch */
+    label {
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Larger modals on mobile */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .modal-content {
+        padding: 0.5rem;
+    }
+    
+    /* Fullscreen dialogs for some functionalities */
+    .modal-fullscreen-md-down {
+        padding: 0 !important;
+    }
+    
+    .modal-fullscreen-md-down .modal-dialog {
+        max-width: none;
+        margin: 0;
+        height: 100%;
+    }
+    
+    .modal-fullscreen-md-down .modal-content {
+        height: 100%;
+        border: 0;
+        border-radius: 0;
+    }
+}
+
+/* Improved responsive layout */
+@media (max-width: 768px) {
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .btn-toolbar {
+        margin-top: 1rem;
+        justify-content: center !important;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+    }
+    
+    .card-footer {
+        text-align: center;
+    }
+
+    /* Convert certain two-column layouts to single column on mobile */
+    .row.g-3 > [class*="col-"] {
+        margin-bottom: 1rem;
+    }
+    
+    /* Adjust spacing for mobile */
+    .py-4 {
+        padding-top: 1.5rem !important;
+        padding-bottom: 1.5rem !important;
+    }
+    
+    /* Make sure buttons are large enough on mobile */
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+}
+
+/* Improved touch targets for mobile */
+@media (pointer: coarse) {
+    /* Increase spacing between clickable elements */
+    .btn + .btn,
+    .nav-item + .nav-item {
+        margin-left: 0.5rem;
+    }
+    
+    /* Better touch feedback */
+    .btn:active,
+    .nav-link:active,
+    .dropdown-item:active {
+        transform: scale(0.98);
+        transition: transform 0.1s;
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Input group styling */
+.input-group-text {
+    background-color: var(--bs-secondary-bg);
+    border: 1px solid var(--bs-border-color);
+}
+
+/* Table striping that works with dark theme */
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Dashboard chart container */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Filter input styling */
+.filter-input {
+    max-width: 300px;
+    margin-bottom: 1rem;
+}
+
+/* Add space between buttons in button groups */
+.btn-group > .btn {
+    margin-right: 2px;
+}
+
+/* Make modals more visible in dark theme */
+.modal-content {
+    border-radius: 0.5rem;
+}
+
+.modal-header {
+    border-top-left-radius: calc(0.5rem - 1px);
+    border-top-right-radius: calc(0.5rem - 1px);
+}
+
+.modal-footer {
+    border-bottom-left-radius: calc(0.5rem - 1px);
+    border-bottom-right-radius: calc(0.5rem - 1px);
+}
